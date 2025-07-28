@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
-import Toast, { PluginOptions } from 'vue-toastification'
+import Toast from 'vue-toastification'
+import type { PluginOptions } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
 import App from './App.vue'
