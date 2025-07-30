@@ -81,6 +81,7 @@ import {
   ChartBarIcon,
   CpuChipIcon,
   DocumentChartBarIcon,
+  ServerIcon,
 } from '@heroicons/vue/24/outline'
 import { MENU_ITEMS } from '@/utils/constants'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -102,6 +103,7 @@ const iconComponents = {
   ChartBarIcon,
   CpuChipIcon,
   DocumentChartBarIcon,
+  ServerIcon,
 }
 
 const getIcon = (iconName: string) => {

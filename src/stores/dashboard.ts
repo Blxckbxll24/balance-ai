@@ -17,38 +17,51 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const keyMetrics = computed(() => {
     if (!dashboardData.value) return null
     
-    const { historical_summary, predictions_summary } = dashboardData.value
+    const { insights, summary } = dashboardData.value
     
     return {
-      totalHistorical: historical_summary.total_historical,
-      totalPredicted: predictions_summary.total_predicted_2025,
-      growthRate: predictions_summary.growth_rate,
-      averageMonthlyHistorical: historical_summary.average_monthly,
-      averageMonthlyPredicted: predictions_summary.average_monthly_2025,
-      totalGrowth: dashboardData.value.key_metrics.total_growth,
+      totalHistorical: summary?.total_historical || 0,
+      totalPredicted: insights?.predicted_year_total || 0,
+      growthRate: insights?.growth_percentage || 0,
+      averageMonthlyHistorical: insights?.average_monthly_current || 0,
+      averageMonthlyPredicted: insights?.average_monthly_predicted || 0,
+      totalGrowth: summary?.growth_projection || 0,
     }
   })
   
   const recentTrendsChart = computed(() => {
-    if (!dashboardData.value?.recent_trends) return null
+    if (!dashboardData.value?.historical_data || !dashboardData.value?.predictions) return null
+    
+    // Crear datos de comparación mensual
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     
     return {
-      labels: dashboardData.value.recent_trends.map(t => t.month),
-      historical: dashboardData.value.recent_trends.map(t => t.historical),
-      predicted: dashboardData.value.recent_trends.map(t => t.predicted),
+      labels: months,
+      historical: dashboardData.value.historical_data.map(item => item.actual_income),
+      predicted: dashboardData.value.predictions.map(item => item.predicted_income),
     }
   })
   
   const performanceIndicators = computed(() => {
-    if (!dashboardData.value) return null
+    if (!dashboardData.value?.historical_data) return null
     
-    const { key_metrics } = dashboardData.value
+    const historicalData = dashboardData.value.historical_data
+    const sorted = [...historicalData].sort((a, b) => b.actual_income - a.actual_income)
+    
+    const best = sorted[0]
+    const worst = sorted[sorted.length - 1]
+    
+    // Calcular volatilidad (desviación estándar)
+    const values = historicalData.map(d => d.actual_income)
+    const avg = values.reduce((sum, val) => sum + val, 0) / values.length
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length
+    const volatilityIndex = Math.sqrt(variance) / avg * 100
     
     return {
-      bestMonth: key_metrics.best_month,
-      worstMonth: key_metrics.worst_month,
-      volatilityIndex: key_metrics.volatility_index,
-      totalGrowth: key_metrics.total_growth,
+      bestMonth: formatMonthName(best.month),
+      worstMonth: formatMonthName(worst.month),
+      volatilityIndex: volatilityIndex,
+      totalGrowth: dashboardData.value.summary?.growth_projection || 0,
     }
   })
   
@@ -131,6 +144,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
   
+  // Función helper para formatear nombres de meses
+  const formatMonthName = (monthStr: string) => {
+    const [year, month] = monthStr.split('-')
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+  }
+
   return {
     // State
     dashboardData,

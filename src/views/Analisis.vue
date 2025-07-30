@@ -1,331 +1,286 @@
 <template>
-  <div class="space-y-6">
-    <!-- Page header -->
-    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        Análisis con IA
-      </h1>
-      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Análisis inteligente y recomendaciones estratégicas automatizadas
-      </p>
-    </div>
-
-    <!-- Analysis form -->
-    <div class="card p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-        Generar Nuevo Análisis
-      </h3>
-      
-      <div class="mb-6">
-        <label class="label">
-          Contexto de Mercado (Opcional)
-        </label>
-        <textarea
-          v-model="marketContext"
-          class="input-field"
-          rows="4"
-          placeholder="Describe el contexto actual del mercado, eventos económicos relevantes, o cualquier información que pueda afectar las predicciones..."
-        ></textarea>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Proporciona contexto adicional para obtener un análisis más preciso y personalizado
-        </p>
-      </div>
-
-      <button
-        @click="generateAnalysis"
-        :disabled="isLoading"
-        class="btn-primary"
-      >
-        {{ isLoading ? 'Generando Análisis...' : 'Generar Análisis IA' }}
-      </button>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="isLoading" class="card p-8">
-      <div class="flex flex-col items-center justify-center">
-        <LoadingSpinner size="lg" />
-        <p class="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-          Generando análisis inteligente...
-        </p>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 text-center">
-          Esto puede tomar unos momentos mientras procesamos los datos con IA
-        </p>
-      </div>
-    </div>
-
-    <!-- Analysis results -->
-    <div v-else-if="hasAnalysis" class="space-y-6">
-      <!-- Confidence score -->
-      <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            Puntuación de Confianza
-          </h3>
-          <div
-            :class="[
-              'px-3 py-1 rounded-full text-sm font-medium',
-              confidenceLevel.bgColor,
-              confidenceLevel.color
-            ]"
-          >
-            {{ confidenceLevel.level }}
-          </div>
-        </div>
-        
-        <div class="flex items-center space-x-4">
-          <div class="flex-1">
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                class="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                :style="{ width: confidenceScore + '%' }"
-              ></div>
-            </div>
-          </div>
-          <span class="text-2xl font-bold text-gray-900 dark:text-white">
-            {{ confidenceScore }}%
-          </span>
-        </div>
-        
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Nivel de confianza del análisis basado en la calidad y cantidad de datos disponibles
-        </p>
-      </div>
-
-      <!-- Business insights -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-          <span class="h-2 w-2 bg-blue-500 rounded-full mr-3"></span>
-          Insights de Negocio
-        </h3>
-        
-        <div v-if="businessInsights.length > 0" class="space-y-3">
-          <div
-            v-for="(insight, index) in businessInsights"
-            :key="index"
-            class="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
-          >
-            <div class="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-300">
-              {{ index + 1 }}
-            </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ insight }}</p>
-          </div>
-        </div>
-        
-        <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
-          No hay insights de negocio disponibles
-        </div>
-      </div>
-
-      <!-- Risk factors -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-          <span class="h-2 w-2 bg-red-500 rounded-full mr-3"></span>
-          Factores de Riesgo
-        </h3>
-        
-        <div v-if="riskFactors.length > 0" class="space-y-3">
-          <div
-            v-for="(risk, index) in riskFactors"
-            :key="index"
-            class="flex items-start space-x-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
-          >
-            <div class="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center text-xs font-medium text-red-600 dark:text-red-300">
-              ⚠
-            </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ risk }}</p>
-          </div>
-        </div>
-        
-        <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
-          No se identificaron factores de riesgo significativos
-        </div>
-      </div>
-
-      <!-- Recommendations -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-          <span class="h-2 w-2 bg-green-500 rounded-full mr-3"></span>
-          Recomendaciones Estratégicas
-        </h3>
-        
-        <div v-if="recommendations.length > 0" class="space-y-3">
-          <div
-            v-for="(recommendation, index) in recommendations"
-            :key="index"
-            class="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
-          >
-            <div class="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center text-xs font-medium text-green-600 dark:text-green-300">
-              ✓
-            </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ recommendation }}</p>
-          </div>
-        </div>
-        
-        <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
-          No hay recomendaciones específicas disponibles
-        </div>
-      </div>
-
-      <!-- Market trends -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-          <span class="h-2 w-2 bg-purple-500 rounded-full mr-3"></span>
-          Tendencias de Mercado
-        </h3>
-        
-        <div v-if="marketTrends.length > 0" class="space-y-3">
-          <div
-            v-for="(trend, index) in marketTrends"
-            :key="index"
-            class="flex items-start space-x-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
-          >
-            <div class="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-800 rounded-full flex items-center justify-center text-xs font-medium text-purple-600 dark:text-purple-300">
-              📈
-            </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ trend }}</p>
-          </div>
-        </div>
-        
-        <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
-          No se identificaron tendencias de mercado relevantes
-        </div>
-      </div>
-
-      <!-- Analysis summary -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Resumen del Análisis
-        </h3>
-        
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Total Insights"
-            :value="analysisSummary?.totalInsights || 0"
-            type="number"
-            icon="ChartBarIcon"
-          />
-          <StatsCard
-            title="Factores de Riesgo"
-            :value="analysisSummary?.totalRisks || 0"
-            type="number"
-            icon="ArrowTrendingDownIcon"
-            :changeType="(analysisSummary?.totalRisks || 0) > 0 ? 'decrease' : 'neutral'"
-          />
-          <StatsCard
-            title="Recomendaciones"
-            :value="analysisSummary?.totalRecommendations || 0"
-            type="number"
-            icon="ArrowTrendingUpIcon"
-            :changeType="(analysisSummary?.totalRecommendations || 0) > 0 ? 'increase' : 'neutral'"
-          />
-          <StatsCard
-            title="Tendencias"
-            :value="analysisSummary?.totalTrends || 0"
-            type="number"
-            icon="CpuChipIcon"
-          />
-        </div>
-        
-        <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          <p>
-            Análisis generado el {{ formattedGeneratedAt }}
-          </p>
-          <p v-if="aiAnalysis?.market_context" class="mt-1">
-            <strong>Contexto aplicado:</strong> {{ aiAnalysis.market_context }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="card p-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Acciones
-        </h3>
-        
-        <div class="flex flex-wrap gap-4">
-          <button
-            @click="exportAnalysis"
-            class="btn-outline"
-          >
-            Exportar Análisis
-          </button>
-          
-          <button
-            @click="generateAnalysis"
-            class="btn-primary"
-            :disabled="isLoading"
-          >
-            Generar Nuevo Análisis
-          </button>
-          
-          <button
-            @click="clearAnalysis"
-            class="btn-secondary"
-          >
-            Limpiar Análisis
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent analyses -->
-    <div v-if="recentAnalyses.length > 0" class="card p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-        Análisis Recientes
-      </h3>
-      
-      <div class="space-y-3">
-        <div
-          v-for="analysis in recentAnalyses"
-          :key="analysis.id"
-          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-          @click="loadAnalysisFromHistory(analysis.id)"
-        >
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-700 dark:from-purple-700 dark:to-indigo-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-900 dark:text-white">
-              {{ analysis.date }}
-            </p>
-            <p class="text-xs text-gray-600 dark:text-gray-400">
-              {{ analysis.insightsCount }} insights • Confianza: {{ analysis.confidence }}%
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500 truncate max-w-md">
-              {{ analysis.marketContext }}
+            <h1 class="text-3xl font-bold text-white">
+              🤖 Análisis con IA
+            </h1>
+            <p class="text-purple-100 mt-2">
+              Insights inteligentes y recomendaciones estratégicas para tu negocio
             </p>
           </div>
-          <div class="text-right">
-            <div
-              :class="[
-                'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                analysis.confidence >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                analysis.confidence >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-              ]"
+          <div class="flex space-x-3">
+            <button
+              @click="generateAnalysis"
+              :disabled="analysisStore.isLoading('aiAnalysis')"
+              class="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-200"
             >
-              {{ analysis.confidence }}%
-            </div>
+              <CpuChipIcon :class="['w-5 h-5', analysisStore.isLoading('aiAnalysis') ? 'animate-pulse' : '']" />
+              <span>{{ analysisStore.isLoading('aiAnalysis') ? 'Analizando...' : 'Generar Análisis' }}</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Empty state -->
-    <div v-else-if="!hasAnalysis && !isLoading" class="card p-8">
-      <div class="text-center">
-        <div class="mx-auto h-12 w-12 text-gray-400">
-          <CpuChipIcon class="h-12 w-12" />
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      
+      <!-- Summary Cards -->
+      <div v-if="analysisSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-red-100 text-sm">Factores de Riesgo</p>
+              <p class="text-3xl font-bold">{{ analysisSummary.risks }}</p>
+              <p class="text-red-100 text-xs mt-1">Identificados</p>
+            </div>
+            <ExclamationTriangleIcon class="w-12 h-12 text-red-200" />
+          </div>
         </div>
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-          No hay análisis disponible
-        </h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Genera tu primer análisis con IA para obtener insights inteligentes
-        </p>
-        <div class="mt-6">
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-green-100 text-sm">Recomendaciones</p>
+              <p class="text-3xl font-bold">{{ analysisSummary.recommendations }}</p>
+              <p class="text-green-100 text-xs mt-1">Estratégicas</p>
+            </div>
+            <LightBulbIcon class="w-12 h-12 text-green-200" />
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-blue-100 text-sm">Oportunidades</p>
+              <p class="text-3xl font-bold">{{ analysisSummary.opportunities }}</p>
+              <p class="text-blue-100 text-xs mt-1">De mejora</p>
+            </div>
+            <StarIcon class="w-12 h-12 text-blue-200" />
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-orange-100 text-sm">Meses Críticos</p>
+              <p class="text-3xl font-bold">{{ analysisSummary.criticalMonths }}</p>
+              <p class="text-orange-100 text-xs mt-1">Identificados</p>
+            </div>
+            <CalendarIcon class="w-12 h-12 text-orange-200" />
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Analysis Results -->
+      <div v-if="analysisStore.aiAnalysisData" class="space-y-6">
+        
+        <!-- Overall Assessment -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <DocumentTextIcon class="w-6 h-6 mr-2 text-purple-500" />
+            Evaluación General
+          </h2>
+          <div class="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-400 p-6 rounded-r-lg">
+            <p class="text-purple-900 dark:text-purple-100 leading-relaxed">
+              {{ analysisStore.aiAnalysisData.overall_assessment }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Trend Analysis -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ArrowTrendingUpIcon class="w-6 h-6 mr-2 text-blue-500" />
+            Análisis de Tendencias
+          </h2>
+          <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-6 rounded-r-lg">
+            <p class="text-blue-900 dark:text-blue-100 leading-relaxed">
+              {{ analysisStore.aiAnalysisData.trend_analysis }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Seasonal Patterns -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ClockIcon class="w-6 h-6 mr-2 text-green-500" />
+            Patrones Estacionales
+          </h2>
+          <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 p-6 rounded-r-lg">
+            <p class="text-green-900 dark:text-green-100 leading-relaxed">
+              {{ analysisStore.aiAnalysisData.seasonal_patterns }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Risk Factors -->
+        <div v-if="analysisStore.aiAnalysisData && analysisStore.aiAnalysisData.risk_factors.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ExclamationTriangleIcon class="w-6 h-6 mr-2 text-red-500" />
+            Factores de Riesgo
+          </h2>
+          <div class="space-y-4">
+            <div v-for="(risk, index) in analysisStore.aiAnalysisData.risk_factors" 
+                 :key="index"
+                 class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded-r-lg">
+              <div class="flex items-start">
+                <ExclamationCircleIcon class="w-5 h-5 text-red-400 mt-1 mr-3 flex-shrink-0" />
+                <div>
+                  <h4 class="font-medium text-red-900 dark:text-red-100 mb-1">Riesgo {{ index + 1 }}</h4>
+                  <p class="text-red-800 dark:text-red-200 text-sm leading-relaxed">{{ formatAnalysisText(risk) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Strategic Recommendations -->
+        <div v-if="analysisStore.aiAnalysisData && analysisStore.aiAnalysisData.strategic_recommendations.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <LightBulbIcon class="w-6 h-6 mr-2 text-yellow-500" />
+            Recomendaciones Estratégicas
+          </h2>
+          <div class="space-y-4">
+            <div v-for="(recommendation, index) in analysisStore.aiAnalysisData.strategic_recommendations" 
+                 :key="index"
+                 class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+              <div class="flex items-start">
+                <CheckCircleIcon class="w-5 h-5 text-yellow-400 mt-1 mr-3 flex-shrink-0" />
+                <div>
+                  <h4 class="font-medium text-yellow-900 dark:text-yellow-100 mb-1">Recomendación {{ index + 1 }}</h4>
+                  <p class="text-yellow-800 dark:text-yellow-200 text-sm leading-relaxed">{{ formatAnalysisText(recommendation) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Improvement Opportunities -->
+        <div v-if="analysisStore.aiAnalysisData && analysisStore.aiAnalysisData.improvement_opportunities.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <StarIcon class="w-6 h-6 mr-2 text-blue-500" />
+            Oportunidades de Mejora
+          </h2>
+          <div class="space-y-4">
+            <div v-for="(opportunity, index) in analysisStore.aiAnalysisData.improvement_opportunities" 
+                 :key="index"
+                 class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-lg">
+              <div class="flex items-start">
+                <ArrowUpIcon class="w-5 h-5 text-blue-400 mt-1 mr-3 flex-shrink-0" />
+                <div>
+                  <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-1">Oportunidad {{ index + 1 }}</h4>
+                  <p class="text-blue-800 dark:text-blue-200 text-sm leading-relaxed">{{ formatAnalysisText(opportunity) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Critical Months -->
+        <div v-if="analysisStore.aiAnalysisData && analysisStore.aiAnalysisData.critical_months.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <CalendarIcon class="w-6 h-6 mr-2 text-orange-500" />
+            Análisis de Meses Críticos
+          </h2>
+          <div class="space-y-4">
+            <div v-for="(monthInfo, index) in analysisStore.aiAnalysisData.critical_months" 
+                 :key="index"
+                 class="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 rounded-r-lg">
+              <div class="flex items-start">
+                <CalendarIcon class="w-5 h-5 text-orange-400 mt-1 mr-3 flex-shrink-0" />
+                <div>
+                  <h4 class="font-medium text-orange-900 dark:text-orange-100 mb-1">Período Crítico {{ index + 1 }}</h4>
+                  <p class="text-orange-800 dark:text-orange-200 text-sm leading-relaxed">{{ formatAnalysisText(monthInfo) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insights Summary -->
+        <div v-if="analysisStore.analysisInsights" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ChartBarIcon class="w-6 h-6 mr-2 text-indigo-500" />
+            Resumen de Insights
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Total Actual</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-white">
+                {{ formatCurrency(analysisStore.analysisInsights.current_year_total) }}
+              </p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Total Predicho</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-white">
+                {{ formatCurrency(analysisStore.analysisInsights.predicted_year_total) }}
+              </p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Crecimiento</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-white">
+                {{ formatPercentage(analysisStore.analysisInsights.growth_percentage) }}
+              </p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Modelo</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-white capitalize">
+                {{ analysisStore.analysisInsights.best_model }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="analysisStore.isLoading('aiAnalysis') && !analysisStore.hasAnalysisData" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12">
+        <div class="text-center">
+          <LoadingSpinner size="large" />
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mt-4">Generando Análisis con IA</h3>
+          <p class="text-gray-600 dark:text-gray-400 mt-2">
+            Procesando datos y generando insights inteligentes...
+          </p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="!analysisStore.hasAnalysisData && !analysisStore.isLoading('aiAnalysis')" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12">
+        <div class="text-center">
+          <CpuChipIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            ¡Genera tu Primer Análisis!
+          </h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">
+            Utiliza nuestra IA avanzada para obtener insights profundos sobre tu negocio
+          </p>
           <button
             @click="generateAnalysis"
-            class="btn-primary"
+            class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
-            Generar Análisis IA
+            Generar Análisis con IA
+          </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-if="analysisStore.hasError('aiAnalysis')" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12">
+        <div class="text-center">
+          <ExclamationTriangleIcon class="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Error al Generar Análisis
+          </h3>
+          <p class="text-red-600 dark:text-red-400 mb-6">
+            {{ analysisStore.getError('aiAnalysis') }}
+          </p>
+          <button
+            @click="generateAnalysis"
+            class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Reintentar
           </button>
         </div>
       </div>
@@ -334,98 +289,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { CpuChipIcon } from '@heroicons/vue/24/outline'
+import { ref, computed, onMounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysis'
 import { useToast } from 'vue-toastification'
-import StatsCard from '@/components/ui/StatsCard.vue'
+import {
+  CpuChipIcon,
+  ExclamationTriangleIcon,
+  LightBulbIcon,
+  StarIcon,
+  CalendarIcon,
+  DocumentTextIcon,
+  ArrowTrendingUpIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+  ArrowUpIcon,
+  ChartBarIcon
+} from '@heroicons/vue/24/outline'
+
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import { formatDateLong } from '@/utils/formatters'
-import { exportToCSV } from '@/utils/helpers'
+import { formatCurrency, formatPercentage, formatAnalysisText } from '@/utils/formatters'
 
 const analysisStore = useAnalysisStore()
 const toast = useToast()
 
-// State
-const marketContext = ref('')
-
-// Computed
-const aiAnalysis = computed(() => analysisStore.aiAnalysis)
-const hasAnalysis = computed(() => analysisStore.hasAnalysis)
-const businessInsights = computed(() => analysisStore.businessInsights)
-const riskFactors = computed(() => analysisStore.riskFactors)
-const recommendations = computed(() => analysisStore.recommendations)
-const marketTrends = computed(() => analysisStore.marketTrends)
-const confidenceScore = computed(() => analysisStore.confidenceScore)
-const confidenceLevel = computed(() => analysisStore.confidenceLevel)
-const recentAnalyses = computed(() => analysisStore.recentAnalyses)
-const analysisSummary = computed(() => analysisStore.getAnalysisSummary())
-
-const isLoading = computed(() => analysisStore.isLoading('aiAnalysis'))
-
-const formattedGeneratedAt = computed(() => {
-  if (aiAnalysis.value?.generated_at) {
-    return formatDateLong(aiAnalysis.value.generated_at)
-  }
-  return ''
+// Computed properties
+const analysisSummary = computed(() => {
+  return analysisStore.getAnalysisSummary
 })
 
-// Methods
+// Actions
 const generateAnalysis = async () => {
   try {
-    await analysisStore.generateNewAnalysis(marketContext.value || undefined)
-    toast.success('Análisis IA generado correctamente')
+    await analysisStore.generateNewAnalysis()
+    toast.success('🎉 Análisis generado exitosamente')
   } catch (error) {
-    toast.error('Error al generar análisis IA')
     console.error('Error generating AI analysis:', error)
+    toast.error('❌ Error al generar el análisis')
   }
 }
 
-const exportAnalysis = () => {
-  if (!aiAnalysis.value) return
-
-  const exportData = analysisStore.exportAnalysis()
-  if (exportData) {
-    // Convert to CSV format
-    const csvData = [
-      { categoria: 'Confianza', valor: exportData.confidence_score + '%' },
-      { categoria: 'Fecha Generación', valor: formatDateLong(exportData.generated_at) },
-      { categoria: 'Contexto Mercado', valor: exportData.market_context || 'N/A' },
-      ...exportData.insights.business_insights.map((insight, i) => ({
-        categoria: `Insight ${i + 1}`,
-        valor: insight
-      })),
-      ...exportData.insights.risk_factors.map((risk, i) => ({
-        categoria: `Riesgo ${i + 1}`,
-        valor: risk
-      })),
-      ...exportData.insights.recommendations.map((rec, i) => ({
-        categoria: `Recomendación ${i + 1}`,
-        valor: rec
-      })),
-      ...exportData.insights.market_trends.map((trend, i) => ({
-        categoria: `Tendencia ${i + 1}`,
-        valor: trend
-      })),
-    ]
-
-    exportToCSV(
-      csvData,
-      `balance-ai-analisis-${new Date().toISOString().split('T')[0]}`
-    )
-    
-    toast.success('Análisis exportado correctamente')
+onMounted(() => {
+  // Cargar análisis automáticamente si no hay datos
+  if (!analysisStore.hasAnalysisData) {
+    generateAnalysis()
   }
-}
-
-const clearAnalysis = () => {
-  analysisStore.clearCurrentAnalysis()
-  marketContext.value = ''
-  toast.info('Análisis limpiado')
-}
-
-const loadAnalysisFromHistory = (analysisId: string) => {
-  analysisStore.loadAnalysisFromHistory(analysisId)
-  toast.info('Análisis cargado desde el historial')
-}
+})
 </script>

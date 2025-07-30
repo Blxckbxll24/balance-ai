@@ -6,6 +6,9 @@ export const API_ENDPOINTS = {
   AI_ANALYSIS: '/analyze/ai',
   DASHBOARD: '/dashboard',
   API_INFO: '/api/info',
+  DATA_UPLOAD: '/data/upload',
+  DATA_INFO: '/data/info',
+  DATA_RESET: '/data/reset',
 } as const
 
 export const CHART_COLORS = {
@@ -28,6 +31,7 @@ export const MENU_ITEMS = [
   { name: 'Dashboard', path: '/', icon: 'HomeIcon' },
   { name: 'Predicciones', path: '/predicciones', icon: 'ChartBarIcon' },
   { name: 'Análisis IA', path: '/analisis', icon: 'CpuChipIcon' },
+  { name: 'Gestión de Datos', path: '/datos', icon: 'ServerIcon' },
   { name: 'Reportes', path: '/reportes', icon: 'DocumentChartBarIcon' },
 ] as const
 

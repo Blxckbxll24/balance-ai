@@ -45,49 +45,57 @@ export interface YearPrediction {
 }
 
 export interface RangePrediction {
+  status: string
   start_date: string
   end_date: string
-  predictions: PredictionData[]
-  summary: {
-    total_predicted: number
-    average_daily: number
-    trend: 'increasing' | 'decreasing' | 'stable'
-  }
+  total_months: number
+  total_predicted: number
+  average_monthly: number
+  monthly_data: Record<string, any>
+  summary: Record<string, any>
 }
 
 export interface AIAnalysis {
-  market_context?: string
-  insights: {
-    business_insights: string[]
-    risk_factors: string[]
-    recommendations: string[]
-    market_trends: string[]
+  status: string
+  ai_analysis: {
+    trend_analysis: string
+    seasonal_patterns: string
+    risk_factors: string[] | string  // Puede ser array o string
+    strategic_recommendations: string[] | string  // Puede ser array o string
+    improvement_opportunities: string[] | string  // Puede ser array o string
+    critical_months: string[] | string  // Puede ser array o string
+    overall_assessment: string
   }
-  confidence_score: number
-  generated_at: string
+  business_insights?: Record<string, any>
+  insights?: {
+    current_year_total: number
+    predicted_year_total: number
+    growth_percentage: number
+    average_monthly_current: number
+    average_monthly_predicted: number
+    best_model: string
+    months_with_data: number
+  }
 }
 
 export interface DashboardData {
-  historical_summary: {
+  status: string
+  historical_data: HistoricalData[]
+  predictions: PredictionData[]
+  insights: {
+    current_year_total: number
+    predicted_year_total: number
+    growth_percentage: number
+    average_monthly_current: number
+    average_monthly_predicted: number
+    best_model: string
+    months_with_data: number
+  }
+  summary: {
     total_historical: number
-    average_monthly: number
-    last_update: string
-  }
-  predictions_summary: {
-    total_predicted_2025: number
-    average_monthly_2025: number
-    growth_rate: number
-  }
-  recent_trends: Array<{
-    month: string
-    historical: number
-    predicted: number
-  }>
-  key_metrics: {
-    total_growth: number
-    best_month: string
-    worst_month: string
-    volatility_index: number
+    total_predicted: number
+    months_with_data: number
+    growth_projection: number
   }
 }
 
@@ -97,6 +105,75 @@ export interface APIInfo {
   description: string
   endpoints: string[]
   last_updated: string
+}
+
+// Data management types
+export interface DataUploadResponse {
+  status: string
+  message: string
+  file_info: {
+    filename: string
+    size_mb: number
+    records_added: number
+    sheet_name: string
+    upload_time: string
+  }
+  data_summary: {
+    total_records: number
+    date_range: {
+      start: string
+      end: string
+    }
+    total_income: number
+    average_monthly: number
+    records_from_existing: number
+    records_from_new_file: number
+  }
+  total_records: number
+}
+
+export interface DataInfoResponse {
+  status: string
+  current_data: {
+    total_records: number
+    date_range: {
+      start: string
+      end: string
+    }
+    data_source: string
+    last_updated: string
+  }
+  data_sources: Array<{
+    type: string
+    description?: string
+    filename?: string
+    size_mb?: number
+    upload_date?: string
+    status: string
+  }>
+  statistics: {
+    total_income: number
+    average_monthly: number
+    median_monthly: number
+    min_monthly: number
+    max_monthly: number
+    std_deviation: number
+    months_with_data: number
+  }
+}
+
+export interface DataResetResponse {
+  status: string
+  message: string
+  data_info: {
+    total_records: number
+    date_range: {
+      start: string
+      end: string
+    }
+    data_source: string
+    reset_time: string
+  }
 }
 
 // UI State Types
@@ -112,10 +189,11 @@ export interface ErrorState {
 export interface ChartDataset {
   label: string
   data: number[]
-  backgroundColor?: string | string[]
-  borderColor?: string
+  backgroundColor: string
+  borderColor: string
   borderWidth?: number
   fill?: boolean
+  tension?: number
 }
 
 export interface ChartData {

@@ -87,7 +87,7 @@ export const generateMonthlyChartData = (
   predicted: number[]
 ): ChartData => {
   return {
-    labels: MONTHS,
+    labels: [...MONTHS],
     datasets: [
       {
         label: 'Histórico',
@@ -95,6 +95,7 @@ export const generateMonthlyChartData = (
         backgroundColor: CHART_COLORS.secondary + '80',
         borderColor: CHART_COLORS.secondary,
         borderWidth: 2,
+        fill: false,
       },
       {
         label: 'Predicho',
@@ -102,6 +103,7 @@ export const generateMonthlyChartData = (
         backgroundColor: CHART_COLORS.primary + '80',
         borderColor: CHART_COLORS.primary,
         borderWidth: 2,
+        fill: false,
       }
     ]
   }

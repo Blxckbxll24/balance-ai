@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AIAnalysis, LoadingState, ErrorState } from '@/types'
 import { apiService } from '@/services/api'
+import { normalizeText } from '@/utils/formatters'
 
 export const useAnalysisStore = defineStore('analysis', () => {
   // State
@@ -9,157 +10,135 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const analysisHistory = ref<AIAnalysis[]>([])
   const loading = ref<LoadingState>({})
   const errors = ref<ErrorState>({})
-  
+
   // Getters
   const isLoading = computed(() => (key: string) => loading.value[key] || false)
-  const getError = computed(() => (key: string) => errors.value[key] || null)
-  
-  const hasAnalysis = computed(() => aiAnalysis.value !== null)
-  
-  const businessInsights = computed(() => {
-    return aiAnalysis.value?.insights.business_insights || []
-  })
-  
-  const riskFactors = computed(() => {
-    return aiAnalysis.value?.insights.risk_factors || []
-  })
-  
-  const recommendations = computed(() => {
-    return aiAnalysis.value?.insights.recommendations || []
-  })
-  
-  const marketTrends = computed(() => {
-    return aiAnalysis.value?.insights.market_trends || []
-  })
-  
-  const confidenceScore = computed(() => {
-    return aiAnalysis.value?.confidence_score || 0
-  })
-  
-  const confidenceLevel = computed(() => {
-    const score = confidenceScore.value
-    if (score >= 80) return { level: 'Alta', color: 'text-green-600', bgColor: 'bg-green-100' }
-    if (score >= 60) return { level: 'Media', color: 'text-yellow-600', bgColor: 'bg-yellow-100' }
-    return { level: 'Baja', color: 'text-red-600', bgColor: 'bg-red-100' }
-  })
-  
-  const recentAnalyses = computed(() => {
-    return analysisHistory.value
-      .slice(-5)
-      .reverse()
-      .map(analysis => ({
-        id: analysis.generated_at,
-        date: new Date(analysis.generated_at).toLocaleDateString('es-ES'),
-        confidence: analysis.confidence_score,
-        marketContext: analysis.market_context || 'Sin contexto específico',
-        insightsCount: analysis.insights.business_insights.length,
-      }))
-  })
-  
-  // Actions
+  const hasError = computed(() => (key: string) => !!errors.value[key])
+  const getError = computed(() => (key: string) => errors.value[key])
+
+  // Utility functions
   const setLoading = (key: string, value: boolean) => {
     loading.value[key] = value
   }
-  
-  const setError = (key: string, error: string | null) => {
-    errors.value[key] = error
+
+  const setError = (key: string, message: string) => {
+    errors.value[key] = message
   }
-  
+
   const clearError = (key: string) => {
     errors.value[key] = null
   }
-  
-  const fetchAIAnalysis = async (marketContext?: string) => {
+
+  // Helper function to convert string to array if needed
+  const processTextToArray = (data: any): string[] => {
+    if (!data) return []
+    
+    // Si ya es un array, procesarlo
+    if (Array.isArray(data)) {
+      return data.map(item => normalizeText(String(item)))
+    }
+    
+    // Si es un string, convertirlo a array
+    if (typeof data === 'string') {
+      const normalized = normalizeText(data)
+      
+      // Intentar dividir por puntos, saltos de línea o numeración
+      const sentences = normalized
+        .split(/[.!?]\s*|\n|\d+\.?\s*/)
+        .filter(sentence => sentence.trim().length > 10) // Filtrar oraciones muy cortas
+        .map(sentence => sentence.trim())
+      
+      return sentences.length > 0 ? sentences : [normalized]
+    }
+    
+    return []
+  }
+
+  // Actions
+  const fetchAIAnalysis = async () => {
     const key = 'aiAnalysis'
+    
     try {
       setLoading(key, true)
       clearError(key)
       
-      const data = await apiService.getAIAnalysis({ market_context: marketContext })
+      console.log('🤖 Fetching AI analysis...')
+      const data = await apiService.getAIAnalysis()
       aiAnalysis.value = data
       
-      // Add to history if it's not already there
-      const existsInHistory = analysisHistory.value.some(
-        analysis => analysis.generated_at === data.generated_at
-      )
-      
-      if (!existsInHistory) {
-        analysisHistory.value.push(data)
-        
-        // Keep only the last 20 analyses in history
-        if (analysisHistory.value.length > 20) {
-          analysisHistory.value = analysisHistory.value.slice(-20)
+      // Add to history if it's a new analysis
+      if (data && data.ai_analysis) {
+        analysisHistory.value.unshift(data)
+        // Keep only last 10 analyses
+        if (analysisHistory.value.length > 10) {
+          analysisHistory.value = analysisHistory.value.slice(0, 10)
         }
       }
       
-      console.log('✅ AI Analysis generated successfully')
-      console.log('📊 Confidence Score:', data.confidence_score)
-      console.log('💡 Business Insights:', data.insights.business_insights.length)
-      console.log('⚠️ Risk Factors:', data.insights.risk_factors.length)
-      console.log('🎯 Recommendations:', data.insights.recommendations.length)
-      
+      console.log('✅ AI Analysis loaded successfully:', data)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error generating AI analysis'
+      console.error('❌ Error loading AI analysis:', error)
+      const message = error instanceof Error ? error.message : 'Error loading AI analysis'
       setError(key, message)
-      console.error('❌ Error fetching AI analysis:', error)
       throw error
     } finally {
       setLoading(key, false)
     }
   }
-  
-  const generateNewAnalysis = async (marketContext?: string) => {
-    await fetchAIAnalysis(marketContext)
+
+  const generateNewAnalysis = async () => {
+    await fetchAIAnalysis()
   }
-  
-  const loadAnalysisFromHistory = (analysisId: string) => {
-    const analysis = analysisHistory.value.find(a => a.generated_at === analysisId)
-    if (analysis) {
-      aiAnalysis.value = analysis
-      console.log('📄 Loaded analysis from history:', analysisId)
-    }
-  }
-  
-  const clearCurrentAnalysis = () => {
-    aiAnalysis.value = null
-    clearError('aiAnalysis')
-  }
-  
-  const clearAnalysisHistory = () => {
-    analysisHistory.value = []
-    console.log('🗑️ Analysis history cleared')
-  }
-  
-  const exportAnalysis = (analysis: AIAnalysis = aiAnalysis.value!) => {
-    if (!analysis) return null
+
+  // Computed properties (getters)
+  const getAnalysisSummary = computed(() => {
+    if (!aiAnalysis.value?.ai_analysis) return null
+    
+    const analysis = aiAnalysis.value.ai_analysis
+    
+    // Debug: ver la estructura real
+    console.log('🔍 Analysis structure:', analysis)
     
     return {
-      generated_at: analysis.generated_at,
-      market_context: analysis.market_context,
-      confidence_score: analysis.confidence_score,
-      insights: {
-        business_insights: analysis.insights.business_insights,
-        risk_factors: analysis.insights.risk_factors,
-        recommendations: analysis.insights.recommendations,
-        market_trends: analysis.insights.market_trends,
-      },
+      risks: processTextToArray(analysis.risk_factors).length,
+      recommendations: processTextToArray(analysis.strategic_recommendations).length,
+      opportunities: processTextToArray(analysis.improvement_opportunities).length,
+      criticalMonths: processTextToArray(analysis.critical_months).length
     }
-  }
-  
-  const getAnalysisSummary = () => {
-    if (!aiAnalysis.value) return null
+  })
+
+  const aiAnalysisData = computed(() => {
+    if (!aiAnalysis.value?.ai_analysis) return null
     
-    const insights = aiAnalysis.value.insights
+    const analysis = aiAnalysis.value.ai_analysis
+    
     return {
-      totalInsights: insights.business_insights.length,
-      totalRisks: insights.risk_factors.length,
-      totalRecommendations: insights.recommendations.length,
-      totalTrends: insights.market_trends.length,
-      confidence: aiAnalysis.value.confidence_score,
-      generatedAt: aiAnalysis.value.generated_at,
+      trend_analysis: normalizeText(analysis.trend_analysis || ''),
+      seasonal_patterns: normalizeText(analysis.seasonal_patterns || ''),
+      risk_factors: processTextToArray(analysis.risk_factors),
+      strategic_recommendations: processTextToArray(analysis.strategic_recommendations),
+      improvement_opportunities: processTextToArray(analysis.improvement_opportunities),
+      critical_months: processTextToArray(analysis.critical_months),
+      overall_assessment: normalizeText(analysis.overall_assessment || '')
     }
-  }
-  
+  })
+
+  const hasAnalysisData = computed(() => {
+    return aiAnalysis.value && 
+           aiAnalysis.value.status === 'success' &&
+           aiAnalysis.value.ai_analysis
+  })
+
+  const analysisInsights = computed(() => {
+    if (!aiAnalysis.value?.insights) return null
+    return aiAnalysis.value.insights
+  })
+
+  const businessInsights = computed(() => {
+    if (!aiAnalysis.value?.business_insights) return null
+    return aiAnalysis.value.business_insights
+  })
+
   return {
     // State
     aiAnalysis,
@@ -167,26 +146,21 @@ export const useAnalysisStore = defineStore('analysis', () => {
     loading,
     errors,
     
-    // Getters
+    // Getters (computed properties)
     isLoading,
+    hasError,
     getError,
-    hasAnalysis,
+    getAnalysisSummary,
+    aiAnalysisData,
+    hasAnalysisData,
+    analysisInsights,
     businessInsights,
-    riskFactors,
-    recommendations,
-    marketTrends,
-    confidenceScore,
-    confidenceLevel,
-    recentAnalyses,
     
     // Actions
     fetchAIAnalysis,
     generateNewAnalysis,
-    loadAnalysisFromHistory,
-    clearCurrentAnalysis,
-    clearAnalysisHistory,
-    clearError,
-    exportAnalysis,
-    getAnalysisSummary,
+    setLoading,
+    setError,
+    clearError
   }
 })

@@ -86,3 +86,67 @@ export const throttle = <T extends (...args: any[]) => any>(
     }
   }
 }
+
+export const normalizeText = (text: string): string => {
+  if (!text) return ''
+  
+  // Convertir a string si no lo es
+  const textStr = String(text)
+  
+  // Caso especial: texto con cada carácter separado por espacio
+  if (textStr.includes(' ') && textStr.length > 100) {
+    const spaceRatio = (textStr.match(/ /g) || []).length / textStr.length
+    
+    // Si más del 30% son espacios, probablemente cada carácter está separado
+    if (spaceRatio > 0.3) {
+      // Remover espacios entre caracteres individuales
+      let cleaned = textStr.replace(/([a-zA-ZáéíóúÁÉÍÓÚñÑ])\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ])/g, '$1$2')
+      
+      // Mantener espacios después de puntuación
+      cleaned = cleaned.replace(/([.!?,:;])\s*/g, '$1 ')
+      
+      // Agregar espacios entre palabras (mayúscula después de minúscula)
+      cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1 $2')
+      
+      return cleaned.trim()
+    }
+  }
+  
+  // Limpieza normal
+  return textStr
+    .replace(/\s+/g, ' ') // Múltiples espacios a uno solo
+    .trim()
+}
+
+export const formatAnalysisText = (text: string): string => {
+  if (!text) return 'No disponible'
+  
+  const normalized = normalizeText(text)
+  
+  // Si el texto sigue siendo muy largo y parece tener el formato extraño
+  if (normalized.length > 200 && !normalized.includes('.') && !normalized.includes(',')) {
+    // Intentar agregar puntuación basada en longitud
+    const words = normalized.split(' ')
+    let result = ''
+    let currentSentence = ''
+    
+    for (let i = 0; i < words.length; i++) {
+      currentSentence += words[i] + ' '
+      
+      // Agregar punto cada 15-20 palabras aproximadamente
+      if (currentSentence.split(' ').length > 15 && 
+          (words[i].length > 3 || i === words.length - 1)) {
+        result += currentSentence.trim() + '. '
+        currentSentence = ''
+      }
+    }
+    
+    if (currentSentence.trim()) {
+      result += currentSentence.trim() + '.'
+    }
+    
+    return result.trim()
+  }
+  
+  return normalized
+}

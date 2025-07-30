@@ -13,6 +13,7 @@ import Dashboard from './views/Dashboard.vue'
 import Predicciones from './views/Predicciones.vue'
 import Analisis from './views/Analisis.vue'
 import Reportes from './views/Reportes.vue'
+import GestionDatos from './views/GestionDatos.vue'
 
 // Router configuration
 const routes = [
@@ -20,6 +21,7 @@ const routes = [
   { path: '/predicciones', name: 'Predicciones', component: Predicciones },
   { path: '/analisis', name: 'Analisis', component: Analisis },
   { path: '/reportes', name: 'Reportes', component: Reportes },
+  { path: '/datos', name: 'GestionDatos', component: GestionDatos },
 ]
 
 const router = createRouter({

@@ -77,9 +77,16 @@ class ApiService {
     return response.data
   }
 
-  async getRangePrediction(request: PredictionRequest): Promise<RangePrediction> {
-    const response = await this.api.post<RangePrediction>('/predict/range', request)
-    return response.data
+  async getRangePrediction(request: { start_date: string; end_date: string }): Promise<RangePrediction> {
+    console.log('🚀 API Request: POST /predict/range', request)
+    try {
+      const response = await this.api.post<RangePrediction>('/predict/range', request)
+      console.log('✅ Range prediction data:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Error fetching range prediction:', error)
+      throw error
+    }
   }
 
   // AI Analysis endpoint
@@ -107,6 +114,61 @@ class ApiService {
       return true
     } catch {
       return false
+    }
+  }
+
+  // Data management endpoints
+  async uploadDataFile(file: File, sheetName?: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    if (sheetName) {
+      formData.append('sheet_name', sheetName)
+    }
+
+    console.log('🚀 API Request: POST /data/upload', { 
+      filename: file.name, 
+      size: file.size,
+      type: file.type,
+      sheetName 
+    })
+
+    try {
+      const response = await this.api.post('/data/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000, // 60 segundos para uploads
+      })
+      console.log('✅ Upload successful:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Upload failed:', error)
+      throw error
+    }
+  }
+
+  async getDataInfo(): Promise<any> {
+    console.log('🚀 API Request: GET /data/info')
+    try {
+      const response = await this.api.get('/data/info')
+      console.log('✅ Data info retrieved:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Failed to get data info:', error)
+      throw error
+    }
+  }
+
+  async resetData(): Promise<any> {
+    console.log('🚀 API Request: POST /data/reset')
+    try {
+      const response = await this.api.post('/data/reset')
+      console.log('✅ Data reset successful:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Data reset failed:', error)
+      throw error
     }
   }
 }

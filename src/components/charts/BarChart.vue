@@ -1,29 +1,6 @@
 <template>
-  <div class="chart-container">
-    <LoadingSpinner
-      v-if="isLoading"
-      size="lg"
-      text="Cargando gráfica..."
-      class="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-90"
-    />
-    
-    <div v-else-if="error" class="absolute inset-0 flex items-center justify-center">
-      <div class="text-center">
-        <p class="text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
-        <button
-          @click="$emit('retry')"
-          class="btn-primary text-sm"
-        >
-          Reintentar
-        </button>
-      </div>
-    </div>
-
-    <canvas
-      v-else
-      ref="canvasRef"
-      :id="chartId"
-    ></canvas>
+  <div class="w-full h-full">
+    <canvas ref="chartCanvas"></canvas>
   </div>
 </template>
 
@@ -34,162 +11,141 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  BarController,  // ← Agregar esto
   Title,
   Tooltip,
-  Legend,
+  Legend
 } from 'chart.js'
-import type { ChartData } from '@/types'
-import { useChart } from '@/composables/useChart'
-import { useTheme } from '@/composables/useTheme'
-import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import { generateRandomId } from '@/utils/helpers'
 
-// Register Chart.js components
+// Registrar componentes de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  BarController,  // ← Registrar el controlador de barras
   Title,
   Tooltip,
   Legend
 )
 
 interface Props {
-  data: ChartData
-  options?: any
-  isLoading?: boolean
-  error?: string | null
-  title?: string
-  height?: number
+  data: {
+    labels: string[]
+    datasets: Array<{
+      label: string
+      data: number[]
+      backgroundColor: string[] | string
+      borderRadius?: number
+    }>
+  } | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  isLoading: false,
-  error: null,
-  height: 400
-})
+const props = defineProps<Props>()
 
-defineEmits<{
-  retry: []
-}>()
+const chartCanvas = ref<HTMLCanvasElement | null>(null)
+let chartInstance: ChartJS | null = null
 
-const canvasRef = ref<HTMLCanvasElement>()
-const chartInstance = ref<ChartJS | null>(null)
-const chartId = ref(generateRandomId())
-
-const { createBarChart } = useChart()
-const { chartColors } = useTheme()
-
-const initChart = async () => {
-  if (!canvasRef.value || !props.data) return
+const createChart = async () => {
+  if (!chartCanvas.value || !props.data) {
+    console.log('❌ Cannot create bar chart: missing canvas or data')
+    return
+  }
 
   await nextTick()
 
-  // Destroy existing chart
-  if (chartInstance.value) {
-    chartInstance.value.destroy()
-  }
-
   try {
-    const ctx = canvasRef.value.getContext('2d')
-    if (!ctx) return
+    // Destruir gráfica existente
+    if (chartInstance) {
+      chartInstance.destroy()
+    }
 
-    // Create chart with theme-aware colors
-    const chartConfig = createBarChart(props.data, {
-      ...props.options,
-      plugins: {
-        ...props.options?.plugins,
-        title: {
-          display: !!props.title,
-          text: props.title,
-          color: chartColors.value.text,
-          font: {
-            size: 16,
-            weight: 'bold',
+    const ctx = chartCanvas.value.getContext('2d')
+    if (!ctx) {
+      console.error('❌ Cannot get canvas context')
+      return
+    }
+
+    console.log('📊 Creating bar chart with data:', props.data)
+
+    chartInstance = new ChartJS(ctx, {
+      type: 'bar',
+      data: props.data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20
+            }
           },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y
+                return `${context.dataset.label}: $${value.toLocaleString('es-ES')}`
+              }
+            }
+          }
         },
-        legend: {
-          ...props.options?.plugins?.legend,
-          labels: {
-            color: chartColors.value.text,
-            usePointStyle: true,
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Meses'
+            }
           },
-        },
-        tooltip: {
-          backgroundColor: chartColors.value.background,
-          titleColor: chartColors.value.text,
-          bodyColor: chartColors.value.text,
-          borderColor: chartColors.value.border,
-        },
-      },
-      scales: {
-        x: {
-          grid: {
-            color: chartColors.value.border,
-          },
-          ticks: {
-            color: chartColors.value.textMuted,
-          },
-        },
-        y: {
-          grid: {
-            color: chartColors.value.border,
-          },
-          ticks: {
-            color: chartColors.value.textMuted,
-            callback: function(value: any) {
-              return new Intl.NumberFormat('es-ES', {
-                style: 'currency',
-                currency: 'EUR',
-                minimumFractionDigits: 0,
-              }).format(value)
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Ingresos'
             },
-          },
-        },
-      },
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + Number(value).toLocaleString('es-ES')
+              }
+            }
+          }
+        }
+      }
     })
 
-    chartInstance.value = new ChartJS(ctx, chartConfig as any)
+    console.log('✅ Bar chart created successfully')
   } catch (error) {
-    console.error('Error creating bar chart:', error)
+    console.error('❌ Error creating bar chart:', error)
   }
 }
 
-const updateChart = () => {
-  if (chartInstance.value && props.data) {
-    chartInstance.value.data = props.data
-    chartInstance.value.update('active')
+const destroyChart = () => {
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
   }
 }
 
-const resizeChart = () => {
-  if (chartInstance.value) {
-    chartInstance.value.resize()
+// Watchers
+watch(() => props.data, () => {
+  if (props.data) {
+    createChart()
+  } else {
+    destroyChart()
   }
-}
+}, { deep: true })
 
-// Watch for data changes
-watch(() => props.data, updateChart, { deep: true })
-
-// Watch for theme changes
-watch(() => chartColors.value, initChart, { deep: true })
-
+// Lifecycle
 onMounted(() => {
-  initChart()
-  window.addEventListener('resize', resizeChart)
+  if (props.data) {
+    createChart()
+  }
 })
 
 onUnmounted(() => {
-  if (chartInstance.value) {
-    chartInstance.value.destroy()
-  }
-  window.removeEventListener('resize', resizeChart)
-})
-
-// Expose chart instance for parent components
-defineExpose({
-  chart: chartInstance,
-  updateChart,
-  resizeChart,
+  destroyChart()
 })
 </script>
